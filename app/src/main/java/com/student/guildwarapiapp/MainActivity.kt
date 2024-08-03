@@ -81,17 +81,17 @@ class MainActivity : AppCompatActivity() {
             }
 
             val responseBody: String = response.bodyAsText()
-            println(responseBody)
 
             // Parse JSON response using Gson
             val materialListType = object : TypeToken<List<Material>>() {}.type
             val materials: List<Material> = Gson().fromJson(responseBody, materialListType)
 
-            // Fetch names for each material
+            // Fetch names for each material in batches
             val materialWithNames = coroutineScope {
+                val itemIds = materials.map { it.id }.distinct()
+                val items = fetchItemNames(client, itemIds)
                 materials.map { material ->
-                    val itemName = fetchItemName(client, material.id) ?: "Unknown"
-                    println("Material ID: ${material.id}, Name: $itemName") // Debugging line
+                    val itemName = items[material.id]?.name ?: "Unknown"
                     material to itemName
                 }
             }
@@ -107,25 +107,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun fetchItemName(client: HttpClient, id: Int): String? {
-        val url = "https://api.guildwars2.com/v2/items/$id"
-        return try {
-            println("Requesting item details with URL: $url") // Debugging line to check the URL
-            val response: HttpResponse = client.get(url)
-            val responseBody: String = response.bodyAsText()
-            println("Item Response: $responseBody") // Debugging line to check the JSON response
+    private suspend fun fetchItemNames(client: HttpClient, ids: List<Int>): Map<Int, Item> {
+        val chunkedIds = ids.chunked(200) // Batch size of 200
+        val items = mutableMapOf<Int, Item>()
 
-            if (responseBody.contains("404 - File or directory not found.")) {
-                println("Error: 404 - File or directory not found.")
-                return null
-            }
-
-            val item: Item = Gson().fromJson(responseBody, Item::class.java)
-            println("Parsed Item: ID=${item.id}, Name=${item.name}") // Debugging line
-            item.name
-        } catch (e: Exception) {
-            println("Error fetching item name: ${e.message}")
-            null
+        coroutineScope {
+            chunkedIds.map { chunk ->
+                async {
+                    val url = "https://api.guildwars2.com/v2/items?ids=${chunk.joinToString(",")}"
+                    try {
+                        val response: HttpResponse = client.get(url)
+                        val responseBody: String = response.bodyAsText()
+                        val itemListType = object : TypeToken<List<Item>>() {}.type
+                        val batchItems: List<Item> = Gson().fromJson(responseBody, itemListType)
+                        batchItems.associateByTo(items) { it.id }
+                    } catch (e: Exception) {
+                        println("Error fetching item names: ${e.message}")
+                    }
+                }
+            }.awaitAll()
         }
+
+        return items
     }
 }
