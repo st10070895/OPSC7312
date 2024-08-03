@@ -29,11 +29,20 @@ class MainActivity : AppCompatActivity() {
 
     data class Item(
         val id: Int,
-        val name: String
+        val name: String,
+        val description: String,
+        val type: String,
+        val level: Int,
+        val rarity: String,
+        val vendor_value: Int,
+        val game_types: List<String>,
+        val flags: List<String>,
+        val restrictions: List<String>,
+        val chat_link: String,
+        val icon: String
     )
 
     val apiKey = "4A29EC1D-4C3C-694B-B1CD-91CBEB77A782C4862212-F05E-4BB3-8296-AE745846FB4E"
-
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,8 +54,6 @@ class MainActivity : AppCompatActivity() {
         val navView: BottomNavigationView = binding.navView
 
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications
@@ -55,7 +62,6 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        // Ensure this function is called
         accountMaterials()
     }
 
@@ -84,11 +90,10 @@ class MainActivity : AppCompatActivity() {
             // Fetch names for each material
             val materialWithNames = coroutineScope {
                 materials.map { material ->
-                    async {
-                        val itemName = fetchItemName(client, material.id).name
-                        material to itemName
-                    }
-                }.awaitAll()
+                    val itemName = fetchItemName(client, material.id) ?: "Unknown"
+                    println("Material ID: ${material.id}, Name: $itemName") // Debugging line
+                    material to itemName
+                }
             }
 
             // Display the combined result
@@ -102,10 +107,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun fetchItemName(client: HttpClient, id: Int): Item {
+    private suspend fun fetchItemName(client: HttpClient, id: Int): String? {
         val url = "https://api.guildwars2.com/v2/items/$id"
-        val response: HttpResponse = client.get(url)
-        val responseBody: String = response.bodyAsText()
-        return Gson().fromJson(responseBody, Item::class.java)
+        return try {
+            println("Requesting item details with URL: $url") // Debugging line to check the URL
+            val response: HttpResponse = client.get(url)
+            val responseBody: String = response.bodyAsText()
+            println("Item Response: $responseBody") // Debugging line to check the JSON response
+
+            if (responseBody.contains("404 - File or directory not found.")) {
+                println("Error: 404 - File or directory not found.")
+                return null
+            }
+
+            val item: Item = Gson().fromJson(responseBody, Item::class.java)
+            println("Parsed Item: ID=${item.id}, Name=${item.name}") // Debugging line
+            item.name
+        } catch (e: Exception) {
+            println("Error fetching item name: ${e.message}")
+            null
+        }
     }
 }
