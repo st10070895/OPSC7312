@@ -1,15 +1,13 @@
 package com.student.guildwarsapi2
 
 import android.os.Bundle
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
+import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.ktor.client.*
@@ -77,19 +75,28 @@ class MainActivity : AppCompatActivity() {
             val materialListType = object : TypeToken<List<Material>>() {}.type
             val materials: List<Material> = Gson().fromJson(responseBody, materialListType)
 
-            // Fetch names for each material in batches
-            val materialWithNames = coroutineScope {
+            // Fetch names and icons for each material in batches
+            val materialWithNamesAndIcons = coroutineScope {
                 val itemIds = materials.map { it.id }.distinct()
                 val items = fetchItemNames(client, itemIds)
                 materials.map { material ->
-                    val itemName = items[material.id]?.name ?: "Unknown"
-                    material to itemName
+                    val item = items[material.id]
+                    val itemName = item?.name ?: "Unknown"
+                    val itemIcon = item?.icon ?: ""
+                    material to Pair(itemName, itemIcon)
                 }
             }
 
             // Display the combined result
             val text = findViewById<TextView>(R.id.txtOutput)
-            text.text = materialWithNames.joinToString("\n") { "ID: ${it.first.id}, Name: ${it.second}, Category: ${it.first.category}, Count: ${it.first.count}" }
+            text.text = materialWithNamesAndIcons.joinToString("\n") { "ID: ${it.first.id}, Name: ${it.second.first}, Category: ${it.first.category}, Count: ${it.first.count}" }
+
+            // Load the first icon into the ImageView
+            val imageView = findViewById<ImageView>(R.id.imageView)
+            val firstIconUrl = materialWithNamesAndIcons.firstOrNull()?.second?.second
+            firstIconUrl?.let {
+                loadImage(it, imageView)
+            }
 
         } catch (e: Exception) {
             println("Error: ${e.message}")
@@ -120,5 +127,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         return items
+    }
+
+    private fun loadImage(url: String, imageView: ImageView) {
+        Glide.with(this)
+            .load(url)
+            .into(imageView)
     }
 }
