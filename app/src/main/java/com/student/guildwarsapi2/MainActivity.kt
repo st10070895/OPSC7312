@@ -1,8 +1,14 @@
 package com.student.guildwarsapi2
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
@@ -19,10 +25,34 @@ class MainActivity : AppCompatActivity() {
 
     private val apiKey = "4A29EC1D-4C3C-694B-B1CD-91CBEB77A782C4862212-F05E-4BB3-8296-AE745846FB4E"
 
+    private var materialItems: List<MaterialItem> = listOf()
+    private var filteredItems: List<MaterialItem> = listOf()
+    private lateinit var materialAdapter: MaterialAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
+        // Set up Toolbar
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        // Set up Search Bar
+        val searchBar: EditText = findViewById(R.id.searchBar)
+        searchBar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                filterItems(s.toString())
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        // Set up RecyclerView
+        val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
+        recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
+        materialAdapter = MaterialAdapter(filteredItems)
+        recyclerView.adapter = materialAdapter
 
         fetchMaterials()
     }
@@ -54,7 +84,7 @@ class MainActivity : AppCompatActivity() {
             // Fetch material details including buy and sell prices
             val materialPrices = fetchMaterialPrices(client, materials.map { it.id })
 
-            val materialItems = materials.map { material ->
+            materialItems = materials.map { material ->
                 val item = items[material.id]
                 val price = materialPrices[material.id]
                 MaterialItem(
@@ -67,16 +97,23 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            // Set up RecyclerView
-            val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
-            recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
-            recyclerView.adapter = MaterialAdapter(materialItems)
+            filteredItems = materialItems
+            materialAdapter.updateData(filteredItems)
 
         } catch (e: Exception) {
             println("Error: ${e.message}")
         } finally {
             client.close()
         }
+    }
+
+    private fun filterItems(query: String) {
+        filteredItems = if (query.isEmpty()) {
+            materialItems
+        } else {
+            materialItems.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        materialAdapter.updateData(filteredItems)
     }
 
     private suspend fun fetchItemNames(client: HttpClient, ids: List<Int>): Map<Int, Item> {
@@ -125,5 +162,56 @@ class MainActivity : AppCompatActivity() {
         }
 
         return materialPrices
+    }
+
+    private fun sortByNameAscending() {
+        val sortedList = materialItems.sortedBy { it.name }
+        updateAdapter(sortedList)
+    }
+
+    private fun sortByCountDescending() {
+        val sortedList = materialItems.sortedByDescending { it.count }
+        updateAdapter(sortedList)
+    }
+
+    private fun sortByBuyPriceDescending() {
+        val sortedList = materialItems.sortedByDescending { it.buyPrice }
+        updateAdapter(sortedList)
+    }
+
+    private fun sortBySellPriceDescending() {
+        val sortedList = materialItems.sortedByDescending { it.sellPrice }
+        updateAdapter(sortedList)
+    }
+
+    private fun updateAdapter(sortedList: List<MaterialItem>) {
+        materialAdapter.updateData(sortedList)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.sort_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.sortByName -> {
+                sortByNameAscending()
+                true
+            }
+            R.id.sortByCount -> {
+                sortByCountDescending()
+                true
+            }
+            R.id.sortByBuyPrice -> {
+                sortByBuyPriceDescending()
+                true
+            }
+            R.id.sortBySellPrice -> {
+                sortBySellPriceDescending()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 }

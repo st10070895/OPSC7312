@@ -8,15 +8,16 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 
-class MaterialAdapter(private val materials: List<MaterialItem>) :
+class MaterialAdapter(private var materials: List<MaterialItem>) :
     RecyclerView.Adapter<MaterialAdapter.MaterialViewHolder>() {
 
+    // ViewHolder class to hold references to the views
     inner class MaterialViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val materialImageView: ImageView = itemView.findViewById(R.id.materialImageView)
-        val materialTextView: TextView = itemView.findViewById(R.id.materialTextView)
-        val countTextView: TextView = itemView.findViewById(R.id.countTextView)
-        val buyPriceTextView: TextView = itemView.findViewById(R.id.buyPriceTextView)
-        val sellPriceTextView: TextView = itemView.findViewById(R.id.sellPriceTextView)
+        val materialNameTextView: TextView = itemView.findViewById(R.id.materialNameTextView)
+        val materialCountTextView: TextView = itemView.findViewById(R.id.materialCountTextView)
+        val materialBuyPriceTextView: TextView = itemView.findViewById(R.id.materialBuyPriceTextView)
+        val materialSellPriceTextView: TextView = itemView.findViewById(R.id.materialSellPriceTextView)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MaterialViewHolder {
@@ -27,10 +28,10 @@ class MaterialAdapter(private val materials: List<MaterialItem>) :
 
     override fun onBindViewHolder(holder: MaterialViewHolder, position: Int) {
         val material = materials[position]
-        holder.materialTextView.text = material.name
-        holder.countTextView.text = "Count: ${material.count}"
-        holder.buyPriceTextView.text = "Buy Price: ${material.buyPrice}"
-        holder.sellPriceTextView.text = "Sell Price: ${material.sellPrice}"
+        holder.materialNameTextView.text = material.name
+        holder.materialCountTextView.text = "Count: ${material.count}"
+        holder.materialBuyPriceTextView.text = "Buy Price: ${material.buyPrice}"
+        holder.materialSellPriceTextView.text = "Sell Price: ${material.sellPrice}"
 
         Glide.with(holder.itemView.context)
             .load(material.icon)
@@ -38,4 +39,10 @@ class MaterialAdapter(private val materials: List<MaterialItem>) :
     }
 
     override fun getItemCount() = materials.size
+
+    // Method to update data and notify adapter
+    fun updateData(newMaterials: List<MaterialItem>) {
+        materials = newMaterials
+        notifyDataSetChanged()
+    }
 }
