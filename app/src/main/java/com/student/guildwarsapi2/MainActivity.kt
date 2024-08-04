@@ -1,13 +1,10 @@
 package com.student.guildwarsapi2
 
 import android.os.Bundle
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.bumptech.glide.Glide
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.ktor.client.*
@@ -19,6 +16,7 @@ import io.ktor.serialization.gson.*
 import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
+
     data class Material(
         val id: Int,
         val category: Int,
@@ -41,20 +39,24 @@ class MainActivity : AppCompatActivity() {
         val icon: String
     )
 
-    val apiKey = "4A29EC1D-4C3C-694B-B1CD-91CBEB77A782C4862212-F05E-4BB3-8296-AE745846FB4E"
+    data class MaterialItem(
+        val id: Int,
+        val name: String,
+        val icon: String,
+        val count: Int // Include count
+    )
+
+    private val apiKey = "4A29EC1D-4C3C-694B-B1CD-91CBEB77A782C4862212-F05E-4BB3-8296-AE745846FB4E"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-        accountMaterials()
+
+        fetchMaterials()
     }
 
-    private fun accountMaterials() = runBlocking {
+    private fun fetchMaterials() = runBlocking {
         val client = HttpClient(CIO) {
             install(ContentNegotiation) {
                 gson()
@@ -75,28 +77,23 @@ class MainActivity : AppCompatActivity() {
             val materialListType = object : TypeToken<List<Material>>() {}.type
             val materials: List<Material> = Gson().fromJson(responseBody, materialListType)
 
-            // Fetch names and icons for each material in batches
-            val materialWithNamesAndIcons = coroutineScope {
-                val itemIds = materials.map { it.id }.distinct()
-                val items = fetchItemNames(client, itemIds)
-                materials.map { material ->
-                    val item = items[material.id]
-                    val itemName = item?.name ?: "Unknown"
-                    val itemIcon = item?.icon ?: ""
-                    material to Pair(itemName, itemIcon)
-                }
+            // Fetch item details and icons
+            val items = fetchItemNames(client, materials.map { it.id })
+
+            val materialItems = materials.map { material ->
+                val item = items[material.id]
+                MaterialItem(
+                    id = material.id,
+                    name = item?.name ?: "Unknown",
+                    icon = item?.icon ?: "",
+                    count = material.count // Include the count
+                )
             }
 
-            // Display the combined result
-            val text = findViewById<TextView>(R.id.txtOutput)
-            text.text = materialWithNamesAndIcons.joinToString("\n") { "ID: ${it.first.id}, Name: ${it.second.first}, Category: ${it.first.category}, Count: ${it.first.count}" }
-
-            // Load the first icon into the ImageView
-            val imageView = findViewById<ImageView>(R.id.imageView)
-            val firstIconUrl = materialWithNamesAndIcons.firstOrNull()?.second?.second
-            firstIconUrl?.let {
-                loadImage(it, imageView)
-            }
+            // Set up RecyclerView
+            val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
+            recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
+            recyclerView.adapter = MaterialAdapter(materialItems)
 
         } catch (e: Exception) {
             println("Error: ${e.message}")
@@ -127,11 +124,5 @@ class MainActivity : AppCompatActivity() {
         }
 
         return items
-    }
-
-    private fun loadImage(url: String, imageView: ImageView) {
-        Glide.with(this)
-            .load(url)
-            .into(imageView)
     }
 }
