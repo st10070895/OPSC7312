@@ -48,16 +48,22 @@ class MainActivity : AppCompatActivity() {
             val materialListType = object : TypeToken<List<Material>>() {}.type
             val materials: List<Material> = Gson().fromJson(responseBody, materialListType)
 
-            // Fetch item details and icons
+            // Fetch item details including buy and sell prices
             val items = fetchItemNames(client, materials.map { it.id })
+
+            // Fetch material details including buy and sell prices
+            val materialPrices = fetchMaterialPrices(client, materials.map { it.id })
 
             val materialItems = materials.map { material ->
                 val item = items[material.id]
+                val price = materialPrices[material.id]
                 MaterialItem(
                     id = material.id,
                     name = item?.name ?: "Unknown",
                     icon = item?.icon ?: "",
-                    count = material.count
+                    count = material.count,
+                    buyPrice = price?.buys?.unit_price ?: 0,
+                    sellPrice = price?.sells?.unit_price ?: 0
                 )
             }
 
@@ -95,5 +101,29 @@ class MainActivity : AppCompatActivity() {
         }
 
         return items
+    }
+
+    private suspend fun fetchMaterialPrices(client: HttpClient, ids: List<Int>): Map<Int, MaterialPrices> {
+        val chunkedIds = ids.chunked(200) // Batch size of 200
+        val materialPrices = mutableMapOf<Int, MaterialPrices>()
+
+        coroutineScope {
+            chunkedIds.map { chunk ->
+                async {
+                    val url = "https://api.guildwars2.com/v2/commerce/prices?ids=${chunk.joinToString(",")}"
+                    try {
+                        val response: HttpResponse = client.get(url)
+                        val responseBody: String = response.bodyAsText()
+                        val materialPricesListType = object : TypeToken<List<MaterialPrices>>() {}.type
+                        val batchMaterialPrices: List<MaterialPrices> = Gson().fromJson(responseBody, materialPricesListType)
+                        batchMaterialPrices.associateByTo(materialPrices) { it.id }
+                    } catch (e: Exception) {
+                        println("Error fetching material prices: ${e.message}")
+                    }
+                }
+            }.awaitAll()
+        }
+
+        return materialPrices
     }
 }

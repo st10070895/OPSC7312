@@ -15,6 +15,8 @@ class MaterialAdapter(private val materials: List<MaterialItem>) :
         val materialImageView: ImageView = itemView.findViewById(R.id.materialImageView)
         val materialTextView: TextView = itemView.findViewById(R.id.materialTextView)
         val countTextView: TextView = itemView.findViewById(R.id.countTextView)
+        val buyPriceTextView: TextView = itemView.findViewById(R.id.buyPriceTextView)
+        val sellPriceTextView: TextView = itemView.findViewById(R.id.sellPriceTextView)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MaterialViewHolder {
@@ -26,7 +28,9 @@ class MaterialAdapter(private val materials: List<MaterialItem>) :
     override fun onBindViewHolder(holder: MaterialViewHolder, position: Int) {
         val material = materials[position]
         holder.materialTextView.text = material.name
-        holder.countTextView.text = material.count.toString()
+        holder.countTextView.text = "Count: ${material.count}"
+        holder.buyPriceTextView.text = "Buy Price: ${material.buyPrice}"
+        holder.sellPriceTextView.text = "Sell Price: ${material.sellPrice}"
 
         Glide.with(holder.itemView.context)
             .load(material.icon)

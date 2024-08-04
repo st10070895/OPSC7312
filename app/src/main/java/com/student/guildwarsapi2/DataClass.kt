@@ -26,5 +26,24 @@ data class MaterialItem(
     val id: Int,
     val name: String,
     val icon: String,
-    val count: Int // Include count
+    val count: Int,
+    val buyPrice: Int,
+    val sellPrice: Int
+)
+
+data class Buys(
+    val quantity: Int,
+    val unit_price: Int
+)
+
+data class  Sells(
+    val quantity: Int,
+    val unit_price: Int
+)
+
+data class MaterialPrices(
+    val id: Int,
+    val whitelisted: Boolean,
+    val buys: Buys,
+    val sells: Sells
 )
