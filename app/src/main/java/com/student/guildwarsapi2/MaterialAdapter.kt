@@ -1,6 +1,5 @@
 package com.student.guildwarsapi2
 
-
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 
-class MaterialAdapter(private val materials: List<MainActivity.MaterialItem>) :
+class MaterialAdapter(private val materials: List<MaterialItem>) :
     RecyclerView.Adapter<MaterialAdapter.MaterialViewHolder>() {
 
     inner class MaterialViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
