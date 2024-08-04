@@ -1,5 +1,3 @@
-package com.student.guildwarsapi2
-
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -13,6 +11,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.student.guildwarsapi2.Item
+import com.student.guildwarsapi2.Material
+import com.student.guildwarsapi2.MaterialAdapter
+import com.student.guildwarsapi2.MaterialItem
+import com.student.guildwarsapi2.MaterialPrices
+import com.student.guildwarsapi2.R
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
