@@ -1,3 +1,6 @@
+package com.student.guildwarsapi2
+
+
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
